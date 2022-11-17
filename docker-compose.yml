@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  api:
+    build:
+      context: .
+      args:
+        port: 9393
+    ports:
+      - 9393:9393
