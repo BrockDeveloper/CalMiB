@@ -6,30 +6,13 @@ from datetime import datetime, time, timedelta
 from dateutil import tz
 import requests
 
+from models.academicYear import AcademicYear
+from models.course import Course
+from models.group import Group
+from models.lang import Lang
+
 ENDPOINT = 'https://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib/grid_call.php'
 ROME = tz.gettz('Europe/Rome')
-
-
-class Lang(str, Enum):
-    italian = 'it'
-    english = 'en'
-
-
-class Corso(str, Enum):
-    informatica_triennale = 'E3101Q'
-
-
-class AnnoAccademico(int, Enum):
-    primo = 1
-    secondo = 2
-    terzo = 3
-
-
-class Percorso(str, Enum):
-    unico = 'TO-DO'
-    t_uno = 'GGG_A-L'
-    t_due = 'GGG_M-Z'
-
 
 class ResponseMessage:
     def __init__(self, message: str):
@@ -48,8 +31,8 @@ app = FastAPI(
              '503': {'description': 'Service Unavailable'},
          })
 async def root(
-    corso: Corso,
-    percorso: Percorso,
+    corso: Course,
+    percorso: Group,
     anno: int = Path(title="L'anno solare del calendario",
                      ge=2020, le=datetime.utcnow().year),
     anno_accademico: int = Path(

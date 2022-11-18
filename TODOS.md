@@ -5,6 +5,6 @@
 - [ ] Gestione Errori
 - [ ] Dividi in file
 - [ ] cache?
-- [ ] DOCKER?
+- [x] DOCKER?
 - [ ] Configurazione OpenAPI (Swagger)
 - [ ] Metti pubblicità al discord e cose
