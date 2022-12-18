@@ -6,5 +6,6 @@
 - [ ] Dividi in file
 - [ ] cache?
 - [x] DOCKER?
+- [] Data validation
 - [ ] Configurazione OpenAPI (Swagger)
 - [ ] Metti pubblicità al discord e cose

@@ -5,6 +5,7 @@ from ics import Calendar, Event, DisplayAlarm
 from datetime import datetime, time, timedelta
 from dateutil import tz
 import requests
+import re
 
 from models.academicYear import AcademicYear
 from models.course import Course
@@ -67,7 +68,7 @@ async def root(
         # Ora fine se è tutto il giorno è 24:00 quindi non si riesce a parsare eg:: nel caso di chiusura_type
         if ev['tipo'] == 'chiusura_type':
             e.make_all_day()
-            e.name = ev['nome']
+            e.name =  re.sub('<[^<]+?>', '', ev['nome'])
         else:
             ora_fine = ev['ora_fine'].split(':')
             e.end = datetime.combine(e.begin.date(), time(
