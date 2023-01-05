@@ -12,7 +12,8 @@ from models.course import Course
 from models.group import Group
 from models.lang import Lang
 
-ENDPOINT = 'https://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib/grid_call.php'
+ENDPOINT_CORSI = 'https://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib/grid_call.php'
+ENDPOINT_ESAMI = 'https://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib/test_call.php'
 ROME = tz.gettz('Europe/Rome')
 
 class ResponseMessage:
@@ -25,6 +26,63 @@ app = FastAPI(
     version='0.0.1',
     description='Calendar feed for unimib lessons',
 )
+
+
+@app.get('/esami/{corso}/{anno}/{anno_accademico}',
+         responses={
+             '503': {'description': 'Service Unavailable'},
+         })
+async def esami(
+    corso: Course,
+    anno: int = Path(title="L'anno solare del calendario",
+                     ge=2020, le=datetime.utcnow().year),
+    anno_accademico: int = Path(
+        title="L'anno accademico di interesse", ge=1, le=3),
+    lang: Lang = Lang.italian,
+    alarms: bool = False,
+):
+
+    req = {
+        'view': 'easytest',
+        'include': 'et_cdl',
+        'et_er': 1,
+        'scuola': 'AreaScientifica-Informatica',
+        'esami_cdl': corso,
+        'anno2[]': anno_accademico,
+        'datefrom': f"01-01-{anno}",
+        'dateto': f"01-01-{anno+1}",
+        'all_events': 1,
+        '_lang': lang,
+    }
+
+    try:
+        res = requests.post(ENDPOINT_ESAMI, data=req)
+    except:
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=ResponseMessage('Service Unavailable'))
+
+    data = res.json()
+    celle: dict = data['Insegnamenti']
+    appelli: list = [celle[key]['Appelli'] for key in celle]
+
+    def convert(apl: dict):
+        e = Event()
+        e.begin = datetime.fromtimestamp(
+            apl['Timestamp'], tz=ROME)
+
+        # Ora fine se è tutto il giorno è 24:00 quindi non si riesce a parsare eg:: nel caso di chiusura_type
+        e.make_all_day()
+        
+        if alarms:
+            e.alarms = [DisplayAlarm(-timedelta(days=7)),
+                        DisplayAlarm(-timedelta(days=1))]
+
+        e.name = f"{apl['TipoEsame'].capitalize()} {apl['nome']} in {apl['AulaCodice'][0]}".strip()
+        return e
+
+    c = Calendar()
+    c.events = [convert(apl) for apl_lst in appelli for apl in apl_lst]
+
+    return Response(content=c.serialize(), media_type='text/calendar')
 
 
 @app.get('/{corso}/{anno}/{anno_accademico}/{percorso}',
@@ -53,7 +111,7 @@ async def root(
     }
 
     try:
-        res = requests.post(ENDPOINT, data=req)
+        res = requests.post(ENDPOINT_CORSI, data=req)
     except:
         return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=ResponseMessage('Service Unavailable'))
 
