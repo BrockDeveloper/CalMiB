@@ -67,11 +67,13 @@ async def esami(
     def convert(apl: dict):
         e = Event()
         e.begin = datetime.fromtimestamp(
-            apl['Timestamp'], tz=ROME)
+            apl['Timestamp'])
 
         # Ora fine se è tutto il giorno è 24:00 quindi non si riesce a parsare eg:: nel caso di chiusura_type
-        e.make_all_day()
-        
+        ora_fine = apl['OraFine'].split(':')
+        e.end = datetime.combine(e.begin.date(), time(
+            int(ora_fine[0]), int(ora_fine[1]), tzinfo=ROME), tzinfo=ROME)
+
         if alarms:
             e.alarms = [DisplayAlarm(-timedelta(days=7)),
                         DisplayAlarm(-timedelta(days=1))]
