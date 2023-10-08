@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Path, Response, status
+from fastapi import FastAPI, Path, Response, status, Query
 from fastapi.responses import JSONResponse
 from enum import Enum
+from typing import Annotated, Union
 from ics import Calendar, Event, DisplayAlarm
 from datetime import datetime, time, timedelta
 from dateutil import tz
@@ -11,6 +12,7 @@ from models.academicYear import AcademicYear
 from models.course import Course
 from models.group import Group
 from models.lang import Lang
+from models.filterMode import FilterMode
 
 ENDPOINT_CORSI = 'https://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib/grid_call.php'
 ENDPOINT_ESAMI = 'https://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib/test_call.php'
@@ -100,6 +102,8 @@ async def root(
         title="L'anno accademico di interesse", ge=1, le=3),
     lang: Lang = Lang.italian,
     alarms: bool = False,
+    mode: FilterMode = FilterMode.whitelist,
+    filters: Union[list[str], None] = Query(default=None),
 ):
 
     req = {
@@ -138,16 +142,27 @@ async def root(
                 e.alarms = [DisplayAlarm(-timedelta(hours=3)),
                             DisplayAlarm(-timedelta(hours=2))]
 
-            e.name = f"{ev['nome_insegnamento']} in {ev['codice_aula']} con {ev['docente']}"
+            codice_insegnamento = ev['codice_insegnamento'].split('_')[1]
+
+            e.name = f"{ev['nome_insegnamento']} in {ev['codice_aula']} con {ev['docente']} [{codice_insegnamento}]".strip()
         return e
 
     c = Calendar()
-    c.events = [convert(ev) for ev in celle]
+    c.events = [convert(ev) for ev in celle if filters == None or (filters != None and filter_helper(filters, mode, ev))]
 
     return Response(content=c.serialize(), media_type='text/calendar')
 
+def filter_helper(filters: list, mode: FilterMode, ev: dict) -> bool:
+    if ev['tipo'] == 'chiusura_type':
+        return True
 
+    codice_insegnamento = ev['codice_insegnamento'].split('_')[1]
+    if mode == FilterMode.whitelist:
+        return codice_insegnamento in filters
+    elif mode == FilterMode.blacklist:
+        return codice_insegnamento not in filters
 
+#
 
 import uvicorn
 if __name__ == "__main__":

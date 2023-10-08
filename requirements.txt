@@ -1,4 +1,4 @@
-fastapi
-ics
-requests
-uvicorn
+fastapi==0.94.0
+ics==0.7.2
+requests==2.28.2
+uvicorn==0.21.0
