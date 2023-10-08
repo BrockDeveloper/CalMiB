@@ -1,8 +1,7 @@
 from fastapi import FastAPI, Path, Response, status, Query
 from fastapi.responses import JSONResponse
-from enum import Enum
-from typing import Annotated, Union
-from ics import Calendar, Event, DisplayAlarm
+from typing import Union
+from ics import Calendar, Event, DisplayAlarm, Attendee, Organizer, Geo
 from datetime import datetime, time, timedelta
 from dateutil import tz
 import requests
@@ -142,9 +141,38 @@ async def root(
                 e.alarms = [DisplayAlarm(-timedelta(hours=3)),
                             DisplayAlarm(-timedelta(hours=2))]
 
+            # Estraggo cod insegnamento per i filtri
             codice_insegnamento = ev['codice_insegnamento'].split('_')[1]
 
-            e.name = f"{ev['nome_insegnamento']} in {ev['codice_aula']} con {ev['docente']} [{codice_insegnamento}]".strip()
+            # # 'maps', 'loc_map', 'coordX', 'coordY'
+            # print()
+            # print()
+            # print(ev['nome_insegnamento'])
+            # print(f"maps: {ev['maps']}")
+            # print(f"loc_map: {ev['loc_map']}")
+            # print(f"coordX: {ev['coordX']}")
+            # print(f"coordY: {ev['coordY']}")
+
+            def doc_trim(x: str): return x.strip(", ")
+            def lower_cap(x: str): return ' '.join([y.lower().capitalize() for y in x.split(' ')])
+            docenti = [lower_cap(doc_trim(doc)) for doc in ev['docente'].split(',')]
+            docenti_mail = [doc_trim(doc) for doc in ev['mail_docente'].split(' , ')]
+
+            # e.geo = Geo(ev['coordX'], ev['coordY'])
+            e.location = f"{ev['codice_aula']}, {ev['codice_sede']}"
+
+            e.name = f"{ev['nome_insegnamento']} [{codice_insegnamento}]".strip()
+            e.description = f"{ev['nome_insegnamento']} in {ev['codice_aula']} con {', '.join(docenti)} [{codice_insegnamento}]".strip()
+            e.organizer = Organizer(docenti_mail[0], common_name=docenti[0])
+            for i, doc in enumerate(docenti[1:]):
+                e.add_attendee(Attendee(docenti_mail[1:][i], common_name=doc, partstat='ACCEPTED', role='REQ-PARTICIPANT'))
+
+            if ev['Annullato'] == '1':
+                e.name = f"ANNULLATO: {e.name}"
+                e.status = 'CANCELLED'
+                e.transparent = True
+            else:
+                e.status = 'CONFIRMED'
         return e
 
     c = Calendar()
