@@ -17,6 +17,18 @@ ENDPOINT_CORSI = 'https://gestioneorari.didattica.unimib.it/PortaleStudentiUnimi
 ENDPOINT_ESAMI = 'https://gestioneorari.didattica.unimib.it/PortaleStudentiUnimib/test_call.php'
 ROME = tz.gettz('Europe/Rome')
 
+SEDI = {
+    'U1': (45.513479734073655, 9.211822282173467 ),
+    'U2': (45.514460769265895, 9.210535599151289 ),
+    'U3': (45.51380106075489, 9.212091426549451 ),
+    'U4': (45.51426947543751, 9.210837126651024 ),
+    'U6': (45.5185967204017, 9.21314861305838 ),
+    'U7': (45.5174219882761, 9.21339461305831 ),
+    'U14': (45.523802382979255, 9.219723243852195),
+    'LIB': (45.523802382979255, 9.219723243852195 ),
+    'U24': (45.52384997347043, 9.220989255386124 ),
+}
+
 class ResponseMessage:
     def __init__(self, message: str):
         self.message = message
@@ -143,24 +155,22 @@ async def root(
 
             # Estraggo cod insegnamento per i filtri
             codice_insegnamento = ev['codice_insegnamento'].split('_')[1]
+            if ev['codice_sede'] == 'LIB':
+                ev['codice_sede'] = ev['codice_aula'].split('-')[0]
 
-            # # 'maps', 'loc_map', 'coordX', 'coordY'
-            # print()
-            # print()
-            # print(ev['nome_insegnamento'])
-            # print(f"maps: {ev['maps']}")
-            # print(f"loc_map: {ev['loc_map']}")
-            # print(f"coordX: {ev['coordX']}")
-            # print(f"coordY: {ev['coordY']}")
-
+            # Manipolazione docenti
             def doc_trim(x: str): return x.strip(", ")
             def lower_cap(x: str): return ' '.join([y.lower().capitalize() for y in x.split(' ')])
             docenti = [lower_cap(doc_trim(doc)) for doc in ev['docente'].split(',')]
             docenti_mail = [doc_trim(doc) for doc in ev['mail_docente'].split(' , ')]
 
-            # e.geo = Geo(ev['coordX'], ev['coordY'])
-            e.location = f"{ev['codice_aula']}, {ev['codice_sede']}"
+            # Georeferencing
+            if ev['codice_sede'] in SEDI:
+                (latitude, longitude) = SEDI[ev['codice_sede']]
+                e.geo = Geo(latitude, longitude)
+            e.location = f"Aula {ev['codice_aula']}\nEdificio {ev['codice_sede']}\nUniversità degli Studi di Milano-Bicocca, Italia"
 
+            # Costruzione evento
             e.name = f"{ev['nome_insegnamento']} [{codice_insegnamento}]".strip()
             e.description = f"{ev['nome_insegnamento']} in {ev['codice_aula']} con {', '.join(docenti)} [{codice_insegnamento}]".strip()
             e.organizer = Organizer(docenti_mail[0], common_name=docenti[0])
