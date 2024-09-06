@@ -1,6 +1,8 @@
 from enum import Enum
 
 class Group(str, Enum):
-    unico = 'TO-DO'
-    t_uno = 'GGG_A-L'
-    t_due = 'GGG_M-Z'
+    unico = 'GGG'
+    t_uno_v1 = 'GGG_A-L'
+    t_due_v1 = 'GGG_M-Z'
+    t_uno_v2 = 'GGG T1'
+    t_due_v2 = 'GGG T2'

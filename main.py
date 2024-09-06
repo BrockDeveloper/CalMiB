@@ -117,6 +117,12 @@ async def root(
     filters: Union[list[str], None] = Query(default=None),
 ):
 
+    # Maintain backwards compatibility
+    if Group.t_uno_v1 == percorso:
+        percorso = Group.t_uno_v2
+    if Group.t_due_v1 == percorso:
+        percorso = Group.t_due_v2
+
     req = {
         'view': 'easycourse',
         'include': 'corso',
@@ -154,7 +160,10 @@ async def root(
                             DisplayAlarm(-timedelta(hours=2))]
 
             # Estraggo cod insegnamento per i filtri
-            codice_insegnamento = ev['codice_insegnamento'].split('_')[1]
+            try:
+                codice_insegnamento = ev['codice_insegnamento'].split('_').at(1)
+            except:
+                codice_insegnamento = ev['codice_insegnamento']
             if ev['codice_sede'] == 'LIB':
                 ev['codice_sede'] = ev['codice_aula'].split('-')[0]
 
@@ -194,7 +203,10 @@ def filter_helper(filters: list, mode: FilterMode, ev: dict) -> bool:
     if ev['tipo'] == 'chiusura_type':
         return True
 
-    codice_insegnamento = ev['codice_insegnamento'].split('_')[1]
+    try:
+        codice_insegnamento = ev['codice_insegnamento'].split('_').at(1)
+    except:
+        codice_insegnamento = ev['codice_insegnamento']
     if mode == FilterMode.whitelist:
         return codice_insegnamento in filters
     elif mode == FilterMode.blacklist:
