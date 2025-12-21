@@ -48,7 +48,7 @@ app = FastAPI(
 async def esami(
     corso: Course,
     anno: int = Path(title="L'anno solare del calendario",
-                     ge=2020, le=datetime.utcnow().year),
+                     ge=2020, le=datetime.utcnow().year + 1),
     anno_accademico: int = Path(
         title="L'anno accademico di interesse", ge=1, le=3),
     lang: Lang = Lang.italian,
@@ -91,7 +91,11 @@ async def esami(
             e.alarms = [DisplayAlarm(-timedelta(days=7)),
                         DisplayAlarm(-timedelta(days=1))]
 
-        e.name = f"{apl['TipoEsame'].capitalize()} {apl['nome']} in {apl['AulaCodice'][0]}".strip()
+        aula = apl["AulaCodice"][0] if apl["AulaCodice"] else ""
+        e.name = (
+            f"{apl['TipoEsame'].capitalize()} {apl['nome']}"
+            + (f" in {aula}" if aula else "").strip()
+        )
         return e
 
     c = Calendar()
